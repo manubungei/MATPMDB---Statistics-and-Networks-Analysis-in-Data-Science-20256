@@ -1,0 +1,153 @@
+---
+title: "Statistical analysis of Liverpool's 2024 25 Season"
+author: "Emmanuel Bungei - 3524891"
+date: "2025-10-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Introduction
+
+This project analyses Liverpool FC's **2024/25 Premier League** season using data captured from all the 38 matches both home and away.  The dataset consist of match date, opponent, venue, result, goals scored (GS), goals conceded (GC), possession (Poss) and attendance. I captured the dataset from <https://fbref.com/en/squads/822bd0ba/2024-2025/Liverpool-Stats#all_matchlogs>.
+
+Over the years I have developed an interest in the football sport and decided to combine it with analytics for this portfolio. The 2024-2025 Premier League season was Liverpool's winning campaign which provided me with a good dataset for applying the course's statistical methods.
+The photo below shows LFC team as they lifted the trophy of the season.
+
+![Liverpool team lifting the trophy](Liverpool_football_club.jpg){width=400px}
+
+
+```{r}
+lfc <- read.table("LiverpoolFC_2024_25.txt", header = TRUE, sep = ",")
+lfc
+```
+
+
+## 1. Student's *t*-test
+
+For the T-test, I will investigate whether playing at home resulted to scoring more goals compared to playing away.
+The test conducted is a one sided test since a team tends to win more games at home due to the 'Home advantage' and support from the big number of fans.
+My null hypothesis is that the average goals scored at home is less than or equal to the average goals scored away.
+
+```{r}
+home_goals <- lfc$GS[lfc$Venue == "Home"]
+away_goals <- lfc$GS[lfc$Venue == "Away"]
+
+home_goals
+away_goals
+mean(home_goals)
+mean(away_goals)
+t.test(home_goals, away_goals,alternative = "greater")
+
+```
+
+The p-value = 0.6063 means that there is a 60.63% chance of observing the data, which is way higher than 5% making the result not statistically significant.
+It is evident that playing at home does not result to scoring more goals and any observed difference is due to random chance.
+We therefore fail to reject the null hypothesis since we do not have enough evidence and may require more data.
+
+
+
+
+## 2. Likelihood function
+
+Here my goal is to get the estimate probability of Liverpool winning a match in the season. They played 38 matches and won 25 of them giving a probability of 0.6579.
+Below is a distribution graph that assesses the probability of different values across p.
+
+```{r}
+p <- seq(from=0,to=1, len=100)
+plot(p,dbinom(25,38,p), xlab="probability of winning", ylab="likelihood")
+abline(v=25/38)
+```
+
+The likelihood function peaks at approximately 0.65 where the graph intersects with the perpendicular abline marking the maximum likelihood estimate(MLE).
+
+### The support function
+
+From the support function, I get to determine the credible interval acceptable for a range of p values. 
+
+```{r}
+p<-seq(from=0.4,to=0.85,len=100)
+support<-function(p){dbinom(25,38,p,log=TRUE)-dbinom(25,38,25/38,log=TRUE)}
+plot(p,support(p))
+abline(h=-2)
+abline(h=0)
+abline(v=25/38)
+grid()
+```
+
+```{r}
+f<-function(p){support(p)+2}
+uniroot(f,c(0.4,0.6))
+```
+```{r}
+uniroot(f,c(0.75,0.85))
+```
+The line at -2 cuts off the graph at the lower and upper limits where credible p values lie.
+From the function, our lower limit is 0.497 while our upper limit is 0.797. 
+Therefore a credible interval for the probability of winning a match is between (0.497, 0.797)
+
+
+
+
+## 3. Fisher's exact test
+
+This test examines whether the probability of winning differs between home and away matches.
+The test is a one-sided test since we expect the team to perform better at home because of the home advantage and large number of fan attendance.
+The null hypothesis therefore is that the probability of winning at home is the same as winning away.
+
+```{r}
+M = matrix(c(14,11,5,8),2,2)
+dimnames(M) <- list(Venue=c("Home","Away"),Result=c("Win","Not Win"))
+M
+dhyper(14,25,13,19)
+sum(dhyper(14:25,25,13,19))
+
+m <- 25  
+n <- 13  
+k <- 19  
+
+x <- 0:25
+
+plot(x, dhyper(x, m, n, k), type = "h", lwd = 4, col = c(rep("black",14),rep("red",12)))
+
+legend("topright", lwd = 4, col = c("black", "red"), 
+       legend = c("regular points", "more extreme"))
+
+fisher.test(M,alternative="greater")
+```
+
+The plot highlights the  probability distribution of home wins and the red bars marking the  values more extreme than the observed home wins.
+
+p-value = 0.2475. 
+We fail to reject the null hypothesis since there is no strong evidence that Liverpool is more likely to win playing at home compared to away.
+
+
+
+## 4. Linear Regression
+For linear regression, I investigate whether the ball possession has a significant effect on the number of goals scored.
+
+```{r}
+model <- lm(GS ~ Poss, data = lfc)
+model
+
+plot(lfc$Poss, lfc$GS, xlab = "Possession (%)", ylab = "Goals Scored")
+abline(model)
+
+summary(model)
+
+```
+
+From the plot, there is a negative correlation between the possession and goals scored denoted by  the regression line.
+The higher possession does not necessarily lead to scoring more goals.
+The regression line is slightly off from the points because our y data is the number of goals which are integers and not continuous making it harder to plot.
+The negative correlation may have resulted from several factors including counter-attacking. Despite having lower possession against stronger teams, Liverpool may have relied on quick counter attacks scoring more goals with less possession. Also scoring early and holding on to the ball for the rest of the match increases their possession and while maintaining a lower number of goals.
+
+## Conclusion
+
+I have learnt to apply the 4 statistical techniques to analyse the real football data and critically evaluate the results.
+In my evaluation, I was surprised to find out that possession did not have a positive effect on goals scored. Similarly, on the Fisher’s exact test there was no significant difference between home and away performance despite having the home advantage on their home games.
+The outcome challenged normal beliefs on football games through the statistical results generated. Even though Liverpool had a strong win rate, the statistical evidence showed that the possession and venue are not strong predictors of a successful game.
+
