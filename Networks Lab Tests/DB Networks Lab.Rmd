@@ -1,0 +1,86 @@
+---
+title: "DB Lab 2 - Networks"
+author: "Emmanuel Bungei"
+date: "2025-11-26"
+output: html_document
+---
+
+```{r}
+library(igraph)
+g=graph.ring(n=20)
+plot.igraph(g,layout=layout.circle, vertex.size=10,vertex.label.cex=0.5)
+```
+
+```{r}
+g=erdos.renyi.game(n=50,p.or.m=0.1,type="gnp")
+plot.igraph(g,layout=layout.fruchterman.reingold,vertex.size=10,vertex.label.cex=0.5)
+```
+
+```{r}
+g=watts.strogatz.game(dim=1, size=50, nei=2, p=0.1)
+plot.igraph(g,layout=layout.circle,vertex.size=10,vertex.label.cex=0.5)
+```
+
+```{r}
+g=barabasi.game(n=100,directed=F)
+plot.igraph(g,layout=layout.auto,vertex.size=10,vertex.label.cex=0.5)
+```
+
+
+```{r}
+g1 <- erdos.renyi.game(n = 5000, p = 0.003)
+print(transitivity(g1))
+print(average.path.length(g1))
+print(mean(degree(g1)))
+```
+
+```{r}
+g2 <- erdos.renyi.game(n = 5000, p = 0.008)
+print(transitivity(g2))
+print(average.path.length(g2))
+print(mean(degree(g2)))
+```
+
+```{r}
+g3 <- erdos.renyi.game(n = 5000, p = 0.015)
+print(transitivity(g3))
+print(average.path.length(g3))
+print(mean(degree(g3)))
+```
+
+Q. 5
+
+```{r}
+library(igraph)
+g <- barabasi.game(100, directed = F)
+
+V(g)$size <- 5 + 10 * degree(g) / max(degree(g))
+
+colors.new <- rev(rainbow(10, end = 2/3))
+
+net.close <- as.numeric(closeness(g))
+net.close <- floor((net.close - min(net.close)) /
+                   diff(range(net.close)) * (length(colors.new)-1) + 1)
+
+V(g)$color <- colors.new[net.close]
+
+plot(g, layout = layout.auto, vertex.label = NA)
+```
+
+```{r}
+library(igraph)
+
+g <- barabasi.game(100, directed = FALSE)
+V(g)$size <- 5 + 10 * degree(g) / max(degree(g))
+
+colors.new <- rev(rainbow(20, end = 2/3))
+
+net.bet <- as.numeric(betweenness(g))
+net.bet <- floor((net.bet - min(net.bet)) /
+                 diff(range(net.bet)) * (length(colors.new)-1) + 1)
+
+V(g)$color <- colors.new[net.bet]
+
+plot(g, layout = layout.auto, vertex.label = NA)
+```
+

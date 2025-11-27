@@ -1,0 +1,21 @@
+---
+title: "Assignment"
+output: html_document
+date: "2025-11-26"
+---
+
+
+
+
+```{r}
+install.packages("igraph")
+library(igraph)
+datEL <- read.csv(file.choose(), header = TRUE)
+el <- as.matrix(datEL)
+el[,1] <- as.character(el[,1])
+el[,2] <- as.character(el[,2])
+g <- graph.edgelist(el, directed = FALSE)
+plot(g)
+
+```
+
