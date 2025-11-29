@@ -1,0 +1,150 @@
+---
+title: "DB Network Assignment"
+author: "Emmanuel Bungei"
+date: "2025-11-29"
+output: html_document
+---
+```{r}
+library(readxl)
+data <- read_excel("starwars-links.xlsx")
+
+```
+```{r}
+head(data)
+
+```
+
+```{r}
+library(igraph)
+# Create the network graph (undirected and weighted)
+g <- graph_from_data_frame(data, directed = FALSE)
+# Set edge weights
+E(g)$weight <- data$scenes
+
+# Basic network information
+cat("Network Summary:\n")
+cat("Number of nodes (characters):", vcount(g), "\n")
+cat("Number of edges (interactions):", ecount(g), "\n")
+cat("Network density:", edge_density(g), "\n\n")
+
+```
+
+
+```{r}
+# Visualization 1: Basic network plot with node size by degree
+plot(g, 
+     vertex.size = degree(g) * 0.5,
+     vertex.label.cex = 0.6,
+     vertex.color = "lightblue",
+     edge.width = E(g)$weight/10,
+     main = "Character Interaction Network\n(Node size by degree, edge width by scenes)")
+
+```
+
+```{r}
+# Visualization 2: Network with node size by betweenness centrality
+betweenness_values <- betweenness(g, weights = 1/E(g)$weight)
+plot(g,
+     vertex.size = sqrt(betweenness_values) * 0.3,
+     vertex.label.cex = 0.6,
+     vertex.color = heat.colors(10)[cut(betweenness_values, breaks = 10)],
+     edge.width = E(g)$weight/10,
+     main = "Character Interaction Network\n(Node size/color by betweenness centrality)")
+
+```
+```{r}
+# Visualization 3: Community detection
+communities <- cluster_louvain(g, weights = E(g)$weight)
+plot(communities, g,
+     vertex.size = degree(g) * 0.5,
+     vertex.label.cex = 0.6,
+     edge.width = E(g)$weight/10,
+     main = "Character Interaction Network\n(Colors show detected communities)")
+```
+
+Step 4: Calculate Metrics
+
+```{r}
+# ============================================
+# QUESTION 1: Most Central Characters
+# ============================================
+
+# Degree centrality
+degree_cent <- degree(g)
+cat("\n=== QUESTION 1: Most Central Characters ===\n\n")
+cat("Top 10 characters by degree (number of connections):\n")
+print(sort(degree_cent, decreasing = TRUE)[1:10])
+
+# Weighted degree (strength)
+strength_cent <- strength(g, weights = E(g)$weight)
+cat("\nTop 10 characters by weighted degree (total scenes):\n")
+print(sort(strength_cent, decreasing = TRUE)[1:10])
+
+# Closeness centrality
+closeness_cent <- closeness(g, weights = 1/E(g)$weight)
+cat("\nTop 10 characters by closeness centrality:\n")
+print(sort(closeness_cent, decreasing = TRUE)[1:10])
+
+# Eigenvector centrality
+eigen_cent <- eigen_centrality(g, weights = E(g)$weight)$vector
+cat("\nTop 10 characters by eigenvector centrality:\n")
+print(sort(eigen_cent, decreasing = TRUE)[1:10])
+
+# ============================================
+# QUESTION 2: Community Structure
+# ============================================
+
+cat("\n\n=== QUESTION 2: Community Structure ===\n\n")
+
+# Louvain community detection
+communities <- cluster_louvain(g, weights = E(g)$weight)
+
+cat("Number of communities detected:", length(communities), "\n")
+cat("Modularity score:", modularity(communities), "\n")
+cat("\nCommunity sizes:\n")
+print(sizes(communities))
+
+cat("\nCharacters in each community:\n")
+for(i in 1:length(communities)) {
+  cat(sprintf("\nCommunity %d (%d members):\n", i, sum(membership(communities) == i)))
+  print(V(g)$name[membership(communities) == i])
+}
+
+# ============================================
+# QUESTION 3: Bridge Characters
+# ============================================
+
+cat("\n\n=== QUESTION 3: Bridge Characters ===\n\n")
+
+# Betweenness centrality
+betweenness_cent <- betweenness(g, weights = 1/E(g)$weight)
+cat("Top 10 characters by betweenness centrality (bridge characters):\n")
+print(sort(betweenness_cent, decreasing = TRUE)[1:10])
+
+# Edge betweenness
+edge_between <- edge_betweenness(g, weights = 1/E(g)$weight)
+cat("\nTop 10 most important connections (edge betweenness):\n")
+top_edges <- order(edge_between, decreasing = TRUE)[1:10]
+for(i in top_edges) {
+  cat(sprintf("Characters %s - %s: %.2f\n", 
+              ends(g, i)[1], ends(g, i)[2], edge_between[i]))
+}
+
+# Articulation points (cut vertices)
+articulation <- articulation_points(g)
+cat("\nArticulation points (critical connectors):\n")
+if(length(articulation) > 0) {
+  print(V(g)$name[articulation])
+} else {
+  cat("No articulation points found (network is 2-connected)\n")
+}
+
+# Summary statistics
+cat("\n\n=== OVERALL NETWORK STATISTICS ===\n\n")
+cat("Average degree:", mean(degree_cent), "\n")
+cat("Network diameter:", diameter(g, weights = 1/E(g)$weight), "\n")
+cat("Average path length:", mean_distance(g, weights = 1/E(g)$weight), "\n")
+cat("Clustering coefficient:", transitivity(g, type = "global"), "\n")
+cat("Network density:", edge_density(g), "\n")
+```
+
